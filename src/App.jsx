@@ -1,230 +1,140 @@
 import { useEffect, useMemo, useState } from "react";
 
-import ClusterView from "./components/ClusterView";
-
 import usePostcards from "./hooks/usePostcards";
 
 import PostcardList from "./components/PostcardList";
 import FilterBar from "./components/FilterBar";
 import StatsBar from "./components/StatsBar";
+import SelectedPostcardPanel from "./components/SelectedPostcardPanel";
 
 export default function App() {
-
   const postcards = usePostcards();
 
-  const [clusterData, setClusterData] =
-    useState([]);
+  // const [clusterData, setClusterData] = useState([]);
+  const [mapData, setMapData] = useState([]);
 
-  const [mapData, setMapData] =
-    useState([]);
+  const [selectedCard, setSelectedCard] = useState(null);
 
-  // FILTER STATES
-  const [search, setSearch] =
-    useState("");
+  // FILTERS
+  const [search, setSearch] = useState("");
+  const [startDate, setStartDate] = useState("");
 
-  const [startDate, setStartDate] =
-    useState("");
+  const [endDate, setEndDate] = useState("");
 
-  const [endDate, setEndDate] =
-    useState("");
+  const [originCountry, setOriginCountry] = useState("");
 
-  const [originCountry,
-    setOriginCountry] =
-    useState("");
+  const [destinationCountry, setDestinationCountry] = useState("");
 
-  const [destinationCountry,
-    setDestinationCountry] =
-    useState("");
+  const [maxDistance, setMaxDistance] = useState("");
 
-  const [maxDistance,
-    setMaxDistance] =
-    useState("");
+  const [sortBy, setSortBy] = useState("");
 
-  const [sortBy, setSortBy] =
-    useState("");
-
-  // COUNTRY LIST
+  // COUNTRIES
   const countries = useMemo(() => {
-
     return [
       ...new Set([
-        ...postcards.map(
-          (p) => p.origin_country
-        ),
-
-        ...postcards.map(
-          (p) => p.receiving_country
-        ),
+        ...postcards.map((p) => p.origin_country),
+        ...postcards.map((p) => p.receiving_country),
       ]),
     ].sort();
-
   }, [postcards]);
 
   // LOAD CLUSTER DATA
-  useEffect(() => {
-
-    fetch(
-      "/data/clustered_postcards.json"
-    )
-      .then((res) => res.json())
-      .then((data) =>
-        setClusterData(data)
-      );
-
-  }, []);
+  // useEffect(() => {
+  //   fetch("/data/clustered_postcards.json")
+  //     .then((res) => res.json())
+  //     .then((data) => setClusterData(data));
+  // }, []);
 
   // LOAD MAP DATA
   useEffect(() => {
-
-    fetch(
-      "/data/final_postcards.json"
-    )
+    fetch("/data/final_postcards.json")
       .then((res) => res.json())
       .then(setMapData);
-
   }, []);
 
   // FILTERING
-  const filteredPostcards =
-    useMemo(() => {
+  const filteredPostcards = useMemo(() => {
+    let filtered = [...postcards].filter((card) => {
+      const matchesSearch = card.id
+        .toLowerCase()
+        .includes(search.toLowerCase());
 
-      let filtered = [...postcards]
-        .filter((card) => {
+      const matchesOrigin =
+        !originCountry || card.origin_country === originCountry;
 
-          const matchesSearch =
-            card.id
-              .toLowerCase()
-              .includes(
-                search.toLowerCase()
-              );
+      const matchesDestination =
+        !destinationCountry || card.receiving_country === destinationCountry;
 
-          const matchesOrigin =
-            !originCountry ||
-            card.origin_country ===
-              originCountry;
+      const matchesDistance =
+        !maxDistance || Number(card.distance) <= Number(maxDistance);
 
-          const matchesDestination =
-            !destinationCountry ||
-            card.receiving_country ===
-              destinationCountry;
+      const sentDate = new Date(card.date_sent);
 
-          const matchesDistance =
-            !maxDistance ||
-            Number(card.distance) <=
-              Number(maxDistance);
+      const matchesStartDate = !startDate || sentDate >= new Date(startDate);
 
-          const sentDate =
-            new Date(card.date_sent);
+      const matchesEndDate = !endDate || sentDate <= new Date(endDate);
 
-          const matchesStartDate =
-            !startDate ||
-            sentDate >=
-              new Date(startDate);
+      return (
+        matchesSearch &&
+        matchesOrigin &&
+        matchesDestination &&
+        matchesDistance &&
+        matchesStartDate &&
+        matchesEndDate
+      );
+    });
 
-          const matchesEndDate =
-            !endDate ||
-            sentDate <=
-              new Date(endDate);
+    switch (sortBy) {
+      case "distanceAsc":
+        filtered.sort((a, b) => Number(a.distance) - Number(b.distance));
+        break;
 
-          return (
-            matchesSearch &&
-            matchesOrigin &&
-            matchesDestination &&
-            matchesDistance &&
-            matchesStartDate &&
-            matchesEndDate
-          );
-        });
+      case "distanceDesc":
+        filtered.sort((a, b) => Number(b.distance) - Number(a.distance));
+        break;
 
-      // SORTING
-      switch (sortBy) {
+      case "timeAsc":
+        filtered.sort((a, b) => Number(a.time) - Number(b.time));
+        break;
 
-        case "distanceAsc":
-          filtered.sort(
-            (a, b) =>
-              Number(a.distance) -
-              Number(b.distance)
-          );
-          break;
+      case "timeDesc":
+        filtered.sort((a, b) => Number(b.time) - Number(a.time));
+        break;
 
-        case "distanceDesc":
-          filtered.sort(
-            (a, b) =>
-              Number(b.distance) -
-              Number(a.distance)
-          );
-          break;
+      default:
+        break;
+    }
 
-        case "timeAsc":
-          filtered.sort(
-            (a, b) =>
-              Number(a.time) -
-              Number(b.time)
-          );
-          break;
+    return filtered;
+  }, [
+    postcards,
+    search,
+    originCountry,
+    destinationCountry,
+    maxDistance,
+    sortBy,
+    startDate,
+    endDate,
+  ]);
 
-        case "timeDesc":
-          filtered.sort(
-            (a, b) =>
-              Number(b.time) -
-              Number(a.time)
-          );
-          break;
-
-        default:
-          break;
-      }
-
-      return filtered;
-
-    }, [
-      postcards,
-      search,
-      originCountry,
-      destinationCountry,
-      maxDistance,
-      sortBy,
-      startDate,
-      endDate,
-    ]);
-
-  // LOADING
   if (!postcards.length) {
-
-    return (
-      <div className="p-10 text-xl">
-        Loading postcards...
-      </div>
-    );
+    return <div className="p-10 text-xl">Loading postcards...</div>;
   }
 
   return (
-
     <div className="min-h-screen bg-gray-100 p-6">
+      <h1 className="text-4xl font-bold mb-6">Postcrossing Explorer</h1>
 
-      {/* TITLE */}
-      <h1 className="text-4xl font-bold mb-6">
-        Postcrossing Explorer
-      </h1>
-
-      {/* FILTER BAR */}
       <FilterBar
         search={search}
         setSearch={setSearch}
         originCountry={originCountry}
-        setOriginCountry={
-          setOriginCountry
-        }
-        destinationCountry={
-          destinationCountry
-        }
-        setDestinationCountry={
-          setDestinationCountry
-        }
+        setOriginCountry={setOriginCountry}
+        destinationCountry={destinationCountry}
+        setDestinationCountry={setDestinationCountry}
         maxDistance={maxDistance}
-        setMaxDistance={
-          setMaxDistance
-        }
+        setMaxDistance={setMaxDistance}
         sortBy={sortBy}
         setSortBy={setSortBy}
         countries={countries}
@@ -234,22 +144,19 @@ export default function App() {
         setEndDate={setEndDate}
       />
 
-      {/* STATS */}
-      <StatsBar
-        postcards={filteredPostcards}
-      />
+      <StatsBar postcards={filteredPostcards} />
 
-      {/* POSTCARD LIST */}
       <PostcardList
         postcards={filteredPostcards}
+        onSelectPostcard={setSelectedCard}
       />
 
-      {/* AI CLUSTER + ROUTE VIEW */}
-      <ClusterView
-        data={clusterData}
+      <SelectedPostcardPanel
+        selectedCard={selectedCard}
+        postcards={filteredPostcards}
         mapData={mapData}
+        onSelectCard={setSelectedCard}
       />
-
     </div>
   );
 }
