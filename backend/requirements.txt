@@ -1,0 +1,10 @@
+torch
+torchvision
+open_clip_torch
+pillow
+numpy
+pandas
+scikit-learn
+umap-learn
+hdbscan
+tqdm
