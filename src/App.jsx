@@ -10,7 +10,7 @@ import SelectedPostcardPanel from "./components/SelectedPostcardPanel";
 export default function App() {
   const postcards = usePostcards();
 
-  // const [clusterData, setClusterData] = useState([]);
+  const [clusterData, setClusterData] = useState([]);
   const [mapData, setMapData] = useState([]);
 
   const [selectedCard, setSelectedCard] = useState(null);
@@ -39,12 +39,12 @@ export default function App() {
     ].sort();
   }, [postcards]);
 
-  // LOAD CLUSTER DATA
-  // useEffect(() => {
-  //   fetch("/data/clustered_postcards.json")
-  //     .then((res) => res.json())
-  //     .then((data) => setClusterData(data));
-  // }, []);
+ // LOAD CLUSTER DATA
+  useEffect(() => {
+    fetch("/data/clustered_postcards.json")
+      .then((res) => res.json())
+      .then((data) => setClusterData(data));
+  }, []);
 
   // LOAD MAP DATA
   useEffect(() => {
@@ -53,9 +53,28 @@ export default function App() {
       .then(setMapData);
   }, []);
 
+  // MERGE POSTCARDS WITH CLUSTER DATA
+const postcardsWithClusters = useMemo(() => {
+
+  return postcards.map((card) => {
+
+    const clusterInfo = clusterData.find(
+      (c) => c.image === card.name
+    );
+
+    return {
+      ...card,
+      cluster: clusterInfo?.cluster ?? -1,
+      x: clusterInfo?.x,
+      y: clusterInfo?.y,
+    };
+  });
+
+}, [postcards, clusterData]);
+
   // FILTERING
   const filteredPostcards = useMemo(() => {
-    let filtered = [...postcards].filter((card) => {
+    let filtered = [...postcardsWithClusters].filter((card) => {
       const matchesSearch = card.id
         .toLowerCase()
         .includes(search.toLowerCase());
