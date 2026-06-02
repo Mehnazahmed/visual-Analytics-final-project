@@ -39,7 +39,7 @@ export default function App() {
     ].sort();
   }, [postcards]);
 
- // LOAD CLUSTER DATA
+  // LOAD CLUSTER DATA
   useEffect(() => {
     fetch("/data/clustered_postcards.json")
       .then((res) => res.json())
@@ -54,23 +54,18 @@ export default function App() {
   }, []);
 
   // MERGE POSTCARDS WITH CLUSTER DATA
-const postcardsWithClusters = useMemo(() => {
+  const postcardsWithClusters = useMemo(() => {
+    return postcards.map((card) => {
+      const clusterInfo = clusterData.find((c) => c.image === card.name);
 
-  return postcards.map((card) => {
-
-    const clusterInfo = clusterData.find(
-      (c) => c.image === card.name
-    );
-
-    return {
-      ...card,
-      cluster: clusterInfo?.cluster ?? -1,
-      x: clusterInfo?.x,
-      y: clusterInfo?.y,
-    };
-  });
-
-}, [postcards, clusterData]);
+      return {
+        ...card,
+        cluster: clusterInfo?.cluster ?? -1,
+        x: clusterInfo?.x,
+        y: clusterInfo?.y,
+      };
+    });
+  }, [postcards, clusterData]);
 
   // FILTERING
   const filteredPostcards = useMemo(() => {
@@ -135,6 +130,7 @@ const postcardsWithClusters = useMemo(() => {
     sortBy,
     startDate,
     endDate,
+    postcardsWithClusters,
   ]);
 
   if (!postcards.length) {

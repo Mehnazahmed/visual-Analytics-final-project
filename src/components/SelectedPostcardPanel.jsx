@@ -1,10 +1,11 @@
 import clusterNames from "../data/clusterNames";
-import PostcardMap from "./PostcardMap";
+// import PostcardMap from "./PostcardMap";
+import RouteMap from "./RouteMap";
 
 export default function SelectedPostcardPanel({
   selectedCard,
   postcards,
-  mapData,
+  // mapData,
   onSelectCard,
 }) {
   if (!selectedCard) return null;
@@ -14,6 +15,16 @@ export default function SelectedPostcardPanel({
       card.cluster === selectedCard.cluster &&
       card.id !== selectedCard.id
   );
+
+  const getClusterName = (cluster) => {
+  return (
+    clusterNames[cluster] ||
+    "Mixed Visual Theme"
+  );
+};
+
+console.log("selectedCard", selectedCard);
+console.log("relatedPostcards[0]", relatedPostcards[0]);
 
   return (
     <div className="mt-10 bg-white rounded-2xl shadow-xl p-6">
@@ -49,10 +60,9 @@ export default function SelectedPostcardPanel({
 
           <p>
             <span className="font-bold">
-              Topic:
+              Tneme:
             </span>{" "}
-            {clusterNames[selectedCard.cluster] ||
-              `Topic Group ${selectedCard.cluster}`}
+            {getClusterName(selectedCard.cluster)}
           </p>
 
           <p>
@@ -82,7 +92,7 @@ export default function SelectedPostcardPanel({
             <span className="font-bold">
               Travel Time:
             </span>{" "}
-            {selectedCard.travel_days} days
+            {selectedCard.time} days
           </p>
         </div>
       </div>
@@ -118,10 +128,15 @@ export default function SelectedPostcardPanel({
           visual topic group.
         </p>
 
-        <PostcardMap
+        {/* <PostcardMap
           data={mapData}
           selectedCluster={selectedCard.cluster}
-        />
+        /> */}
+
+        <RouteMap
+  selectedCard={selectedCard}
+  relatedCards={relatedPostcards}
+/>
       </div>
     </div>
   );

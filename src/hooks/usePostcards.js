@@ -4,9 +4,9 @@ export default function usePostcards() {
   const [postcards, setPostcards] = useState([]);
 
   useEffect(() => {
-    fetch("/data/data.json")
+    fetch("/data/postcards_geocoded.json")
       .then((res) => res.json())
-      .then((data) => setPostcards(data.data));
+      .then((data) => setPostcards(data));
   }, []);
 
   return postcards;
