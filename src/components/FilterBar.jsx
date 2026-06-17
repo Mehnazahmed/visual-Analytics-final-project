@@ -1,6 +1,5 @@
 export default function FilterBar({
-  search,
-  setSearch,
+  
   originCountry,
   setOriginCountry,
   destinationCountry,
@@ -19,18 +18,19 @@ setEndDate,
     <div className="bg-white p-4 rounded-xl shadow mb-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
 
-        {/* Search */}
+        {/* Search
         <input
           type="text"
           placeholder="Search postcard ID..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="border rounded-lg p-2"
-        />
+        /> */}
         {/* Start Date */}
 <input
   type="date"
   value={startDate}
+ 
   onChange={(e) =>
     setStartDate(e.target.value)
   }
