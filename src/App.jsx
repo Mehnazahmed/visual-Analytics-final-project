@@ -7,6 +7,7 @@ import FilterBar from "./components/FilterBar";
 import StatsBar from "./components/StatsBar";
 import SelectedPostcardPanel from "./components/SelectedPostcardPanel";
 import clusterNames from "./data/clusterNames";
+import AnimatedJourneyPanel from "./components/animations/AnimatedJourneyPanel";
 export default function App() {
   const postcards = usePostcards();
 
@@ -228,6 +229,9 @@ export default function App() {
         mapData={mapData}
         onSelectCard={setSelectedCard}
       />
+      <AnimatedJourneyPanel
+    postcards={postcardsWithClusters}
+/>
     </div>
   );
 }
