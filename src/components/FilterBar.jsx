@@ -4,8 +4,7 @@ export default function FilterBar({
   setOriginCountry,
   destinationCountry,
   setDestinationCountry,
-  maxDistance,
-  setMaxDistance,
+  
   sortBy,
   setSortBy,
   countries,
@@ -92,16 +91,7 @@ setEndDate,
           ))}
         </select>
 
-        {/* Distance */}
-        <input
-          type="number"
-          placeholder="Max distance (km)"
-          value={maxDistance}
-          onChange={(e) =>
-            setMaxDistance(e.target.value)
-          }
-          className="border rounded-lg p-2"
-        />
+     
 
         {/* Sorting */}
         <select

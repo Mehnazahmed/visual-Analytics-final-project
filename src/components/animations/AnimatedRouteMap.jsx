@@ -4,16 +4,18 @@ import {
   Polyline,
   CircleMarker,
   Tooltip,
+  useMap,
 } from "react-leaflet";
 
-import { useEffect, useState } from "react";
 import "leaflet/dist/leaflet.css";
 
+import MovingArrowCanvas from "./MovingArrowCanvas";
 
-/* CREATE CURVED ARC */
+/* ------------------------------------------------ */
+/* Curved Arc                                       */
+/* ------------------------------------------------ */
 
-
-function createArc(start, end, curvature = 0.25) {
+export function createArc(start, end, curvature = 0.25) {
   const [lat1, lng1] = start;
   const [lat2, lng2] = end;
 
@@ -26,65 +28,51 @@ function createArc(start, end, curvature = 0.25) {
   const controlLat = midLat + dx * curvature;
   const controlLng = midLng - dy * curvature;
 
-  const points = [];
+  const pts = [];
 
   for (let i = 0; i <= 80; i++) {
     const t = i / 80;
 
     const lat =
-      (1 - t) * (1 - t) * lat1 +
-      2 * (1 - t) * t * controlLat +
-      t * t * lat2;
+      (1 - t) * (1 - t) * lat1 + 2 * (1 - t) * t * controlLat + t * t * lat2;
 
     const lng =
-      (1 - t) * (1 - t) * lng1 +
-      2 * (1 - t) * t * controlLng +
-      t * t * lng2;
+      (1 - t) * (1 - t) * lng1 + 2 * (1 - t) * t * controlLng + t * t * lng2;
 
-    points.push([lat, lng]);
+    pts.push([lat, lng]);
   }
 
-  return points;
+  return pts;
 }
 
-export default function AnimatedRouteMap({ postcards }) {
-  const [dotIndex, setDotIndex] = useState(0);
+/* ------------------------------------------------ */
+/* Canvas Layer                                     */
+/* ------------------------------------------------ */
 
-  useEffect(() => {
-    setDotIndex(0);
+function ArrowLayer({ postcards, playing, speed }) {
+  const map = useMap();
 
-    const timer = setInterval(() => {
-      setDotIndex((prev) => prev + 1);
-    }, 40);
+  return (
+    <MovingArrowCanvas
+      map={map}
+      postcards={postcards}
+      playing={playing}
+      speed={speed}
+      createArc={createArc}
+    />
+  );
+}
 
-    return () => clearInterval(timer);
-  }, [postcards]);
+/* ------------------------------------------------ */
+/* Map                                              */
+/* ------------------------------------------------ */
 
-  const currentCard =
-    postcards.length > 0
-      ? postcards[postcards.length - 1]
-      : null;
-
-  let currentArc = [];
-
-  if (currentCard) {
-    currentArc = createArc(
-      [
-        currentCard.origin_lat,
-        currentCard.origin_lon,
-      ],
-      [
-        currentCard.receiving_lat,
-        currentCard.receiving_lon,
-      ]
-    );
-  }
-
-  const movingPoint =
-    currentArc[
-      Math.min(dotIndex, currentArc.length - 1)
-    ];
-
+export default function AnimatedRouteMap({
+  postcards,
+  playing,
+  speed,
+  progress,
+}) {
   return (
     <MapContainer
       center={[20, 0]}
@@ -93,147 +81,73 @@ export default function AnimatedRouteMap({ postcards }) {
       style={{
         height: "700px",
         width: "100%",
-        borderRadius: "20px",
+        borderRadius: "18px",
       }}
     >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-      />
+      <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
 
+      {/* Animated arrows */}
+      <ArrowLayer postcards={postcards} playing={playing} speed={speed} />
+
+      {/* Static Routes */}
       {postcards.map((card, index) => {
-        const start = [
-          card.origin_lat,
-          card.origin_lon,
-        ];
+        if (
+          card.origin_lat == null ||
+          card.origin_lon == null ||
+          card.receiving_lat == null ||
+          card.receiving_lon == null
+        ) {
+          return null;
+        }
 
-        const end = [
-          card.receiving_lat,
-          card.receiving_lon,
-        ];
+        const start = [card.origin_lat, card.origin_lon];
+
+        const end = [card.receiving_lat, card.receiving_lon];
 
         const arc = createArc(start, end);
 
-        const isCurrent =
-          index === postcards.length - 1;
-
-        const age = postcards.length - index;
-
-        let opacity = 1;
-        let weight = 6;
-
-        if (age === 2) {
-          opacity = 0.7;
-          weight = 5;
-        }
-
-        if (age === 3) {
-          opacity = 0.45;
-          weight = 4;
-        }
-
-        if (age === 4) {
-          opacity = 0.3;
-          weight = 3;
-        }
-
-        if (age >= 5) {
-          opacity = 0.15;
-          weight = 2;
-        }
-
         return (
-          <div key={card.id}>
-            {/* glow for current route */}
-            {isCurrent && (
-              <Polyline
-                positions={arc}
-                pathOptions={{
-                  color: "#60a5fa",
-                  weight: 14,
-                  opacity: 0.12,
-                }}
-              />
-            )}
-
-            {/* route */}
+          <div key={card.id ?? index}>
             <Polyline
               positions={arc}
               pathOptions={{
                 color: "#2563eb",
-                weight,
-                opacity,
+                weight: 2,
+                opacity: 0.13,
+                dashArray: "10 14",
+                dashOffset: `${-progress * 1500}`,
+                lineCap: "round",
               }}
             />
 
-            {/* origin */}
             <CircleMarker
               center={start}
-              radius={isCurrent ? 5 : 3}
+              radius={2}
               fillColor="#22c55e"
-              fillOpacity={opacity}
+              fillOpacity={0.9}
               color="white"
-              weight={1}
+              weight={0.5}
             >
               <Tooltip>
                 {card.origin_city}, {card.origin_country}
               </Tooltip>
             </CircleMarker>
 
-            {/* destination */}
             <CircleMarker
               center={end}
-              radius={isCurrent ? 5 : 3}
+              radius={2}
               fillColor="#ef4444"
-              fillOpacity={opacity}
+              fillOpacity={0.9}
               color="white"
-              weight={1}
+              weight={0.5}
             >
               <Tooltip>
                 {card.receiving_city}, {card.receiving_country}
               </Tooltip>
             </CircleMarker>
-
-            {/* city labels */}
-            {isCurrent && (
-              <>
-                <Tooltip
-                  permanent
-                  direction="left"
-                  offset={[-8, 0]}
-                  position={start}
-                >
-                  {card.origin_city}
-                </Tooltip>
-
-                <Tooltip
-                  permanent
-                  direction="right"
-                  offset={[8, 0]}
-                  position={end}
-                >
-                  {card.receiving_city}
-                </Tooltip>
-              </>
-            )}
           </div>
         );
       })}
-
-      {/* moving airplane */}
-      {movingPoint && (
-        <CircleMarker
-          center={movingPoint}
-          radius={8}
-          color="white"
-          weight={2}
-          fillColor="#facc15"
-          fillOpacity={1}
-        >
-          <Tooltip permanent direction="top">
-            ✈
-          </Tooltip>
-        </CircleMarker>
-      )}
     </MapContainer>
   );
 }

@@ -1,186 +1,138 @@
-import { useMemo, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AnimatedRouteMap from "./AnimatedRouteMap";
-import ActivityTimeline from "./ActivityTimeline";
 
 export default function AnimatedJourneyPanel({ postcards }) {
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState(1);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
 
-  // Sort postcards chronologically
   const sortedCards = useMemo(() => {
     return [...postcards]
       .filter(
         (p) =>
-          p &&
-          p.date_sent &&
           p.origin_lat != null &&
           p.origin_lon != null &&
           p.receiving_lat != null &&
-          p.receiving_lon != null
+          p.receiving_lon != null &&
+          p.date_sent,
       )
-      .sort(
-        (a, b) =>
-          new Date(a.date_sent) - new Date(b.date_sent)
-      );
+      .sort((a, b) => new Date(a.date_sent) - new Date(b.date_sent));
   }, [postcards]);
 
-  //clg
-  console.log(
-    "Current index:",
-    currentIndex,
-    "Total cards:",
-    sortedCards.length
-  );
-
-  // Animation
   useEffect(() => {
     if (!playing) return;
 
-    const timer = setInterval(() => {
-      setCurrentIndex((prev) => {
-        if (prev >= sortedCards.length) {
-          setPlaying(false);
-          return prev;
-        }
+    let animation;
 
-        return prev + speed;
+    let last = performance.now();
+
+    const animate = (now) => {
+      const delta = now - last;
+      last = now;
+
+      setProgress((p) => {
+        let next = p + delta * 0.00004 * speed;
+
+        if (next > 1) next -= 1;
+
+        return next;
       });
-    }, 100);
 
-    return () => clearInterval(timer);
-  }, [playing, speed, sortedCards]);
+      animation = requestAnimationFrame(animate);
+    };
 
-  // Keep only recent routes visible
-  const TRAIL_LENGTH = 10;
+    animation = requestAnimationFrame(animate);
 
-  const visibleCards = sortedCards.slice(
-    Math.max(0, currentIndex - TRAIL_LENGTH),
-    Math.min(currentIndex, sortedCards.length)
-  );
+    return () => cancelAnimationFrame(animation);
+  }, [playing, speed]);
 
-  // Current postcard
-  const currentCard =
-    sortedCards[Math.max(currentIndex - 1, 0)];
+  const currentIndex = Math.floor(progress * (sortedCards.length - 1));
 
-  const currentDate = currentCard?.date_sent || "-";
-
-  const currentYear =
-    currentDate !== "-"
-      ? new Date(currentDate).getFullYear()
-      : "-";
-
-  const progress =
-    sortedCards.length > 0
-      ? Math.round((currentIndex / sortedCards.length) * 100)
-      : 0;
+  const currentYear = sortedCards[currentIndex]
+    ? new Date(sortedCards[currentIndex].date_sent).getFullYear()
+    : "-";
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 mt-8">
-
-      <h2 className="text-2xl font-bold mb-6">
-        Animated Postcard Journeys
-      </h2>
-
-      {/* Controls */}
-      <div className="flex gap-4 mb-6">
-
-        <button
-          className="px-5 py-2 bg-blue-600 text-white rounded-xl"
-          onClick={() => setPlaying(!playing)}
-        >
-          {playing ? "Pause" : "Play"}
-        </button>
-
-        <button
-          className="px-5 py-2 bg-gray-200 rounded-xl"
-          onClick={() => {
-            setPlaying(false);
-            setCurrentIndex(0);
-          }}
-        >
-          Reset
-        </button>
-
-        <select
-          value={speed}
-          className="border px-4 rounded-xl"
-          onChange={(e) => setSpeed(Number(e.target.value))}
-        >
-          <option value={1}>1x</option>
-          <option value={2}>2x</option>
-          <option value={5}>5x</option>
-          <option value={10}>10x</option>
-        </select>
-      </div>
-
-      {/* Slider */}
-      <input
-        type="range"
-        min={0}
-        max={sortedCards.length}
-        value={currentIndex}
-        className="w-full"
-        onChange={(e) =>
-          setCurrentIndex(Number(e.target.value))
-        }
-      />
-
-      <div className="flex justify-between text-sm text-gray-500 mb-8 mt-2">
-        <span>{sortedCards[0]?.date_sent}</span>
-        <span>{currentDate}</span>
-        <span>{sortedCards.at(-1)?.date_sent}</span>
-      </div>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-4 gap-10 mb-8">
-
+    <div className="bg-white rounded-2xl shadow-xl p-5">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <div className="text-gray-500">
-            Current Year
-          </div>
+          <h2 className="text-3xl font-bold">Animated Postcard Journeys</h2>
 
-          <div className="text-4xl font-bold text-blue-600">
-            {currentYear}
-          </div>
+          <p className="text-gray-500">
+            All postcard routes animate in parallel
+          </p>
         </div>
 
-        <div>
-          <div className="text-gray-500">
-            Current Card
+        <div className="flex gap-10 items-center">
+          <button
+            onClick={() => setPlaying(!playing)}
+            className="bg-blue-600 text-white px-6 py-3 rounded-xl"
+          >
+            {playing ? "Pause" : "Play"}
+          </button>
+
+          <button
+            className="border rounded-xl px-6 py-3"
+            onClick={() => setProgress(0)}
+          >
+            Reset
+          </button>
+
+          <div>
+            <div className="text-gray-500 text-sm">Speed</div>
+
+            <select
+              value={speed}
+              onChange={(e) => setSpeed(Number(e.target.value))}
+              className="border rounded-lg p-2"
+            >
+              <option value={0.5}>0.5x</option>
+              <option value={1}>1x</option>
+              <option value={2}>2x</option>
+              <option value={4}>4x</option>
+              <option value={8}>8x</option>
+            </select>
           </div>
 
-          <div className="text-2xl font-bold text-red-500">
-            {currentCard?.id || "-"}
-          </div>
-        </div>
+          <div className="w-80">
+            <div className="flex justify-between text-sm">
+              <span>Progress</span>
 
-        <div>
-          <div className="text-gray-500">
-            Trail Length
+              <span className="font-semibold text-blue-600">
+                {Math.round(progress * 100)}%
+              </span>
+            </div>
+
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.001}
+              value={progress}
+              onChange={(e) => setProgress(Number(e.target.value))}
+              className="w-full"
+            />
           </div>
 
-          <div className="text-4xl font-bold text-purple-600">
-            {visibleCards.length}
-          </div>
-        </div>
+          <div>
+            <div className="text-gray-500 text-sm">Current Year</div>
 
-        <div>
-          <div className="text-gray-500">
-            Progress
+            <div className="text-4xl font-bold text-blue-600">
+              {currentYear}
+            </div>
           </div>
 
-          <div className="text-4xl font-bold text-green-600">
-            {progress}%
+          <div>
+            <div className="text-gray-500 text-sm">Total Routes</div>
+
+            <div className="text-4xl font-bold text-purple-600">
+              {sortedCards.length.toLocaleString()}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Activity graph */}
-      <ActivityTimeline postcards={visibleCards} />
-
-      {/* Animated map */}
-      <AnimatedRouteMap postcards={visibleCards} />
+      <AnimatedRouteMap postcards={sortedCards} progress={progress} />
     </div>
   );
 }
